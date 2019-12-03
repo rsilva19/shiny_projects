@@ -31,14 +31,14 @@ Inputs {.sidebar}
 years = c("2018", "2017", "2016",  "2015")
 
 selectInput (
-  "Year1",
+  "Year11",
   label = h3("Select Year 1"),
   choices = years,
   selected = "2018"
 )
 
 selectInput (
-  "Year2",
+  "Year21",
   label = h3("Select Year 2"),
   choices = years,
   selected = "2017"
@@ -56,7 +56,7 @@ Row
 ```{r, echo = F}
 renderPlotly ({
   
-  yr1 = as.character(input$Year1)
+  yr1 = as.character(input$Year11)
   
   ecig_data %>%
   filter(!age %in% c(9, 10)) %>%
@@ -66,8 +66,8 @@ renderPlotly ({
          ecigs_past_month = factor(ecigs_past_month,
                                    levels = c("0", "1-2", "3-5", "6-9", "10-19", "20-29", "30"),
                                    labels = c("0 days", "1-2 days", "3-5 days", "6-9 days", "10-19 days", "20-29 days", "30 days"))) %>%
-  filter(!quit_cig %in% c(NA, "not a smoker")) %>%
-  filter(year == input$Year1) %>%
+  filter(!quit_cig %in% c(NA, "not a smoker")) %>% 
+  filter(year == input$Year11) %>%
   group_by(quit_cig, ecigs_past_month) %>% 
   summarise(n= n()) %>% 
   mutate(prop = n/sum(n)) %>% 
@@ -89,7 +89,7 @@ renderPlotly ({
 ```{r}
 renderPlotly ({
   
-  yr2 = as.character(input$Year2)
+  yr2 = as.character(input$Year21)
   
    ecig_data %>% 
   filter(!age %in% c(9, 10)) %>%
@@ -100,7 +100,7 @@ renderPlotly ({
                                    levels = c("0", "1-2", "3-5", "6-9", "10-19", "20-29", "30"),
                                    labels = c("0 days", "1-2 days", "3-5 days", "6-9 days", "10-19 days", "20-29 days", "30 days"))) %>%
   filter(!quit_cig %in% c(NA, "not a smoker")) %>%
-  filter(year == input$Year2) %>%
+  filter(year == input$Year21) %>%
   group_by(quit_cig, ecigs_past_month) %>% 
   summarise(n= n()) %>% 
   mutate(prop = n/sum(n)) %>% 
@@ -128,14 +128,14 @@ Inputs {.sidebar}
 years = c("2018", "2017", "2016",  "2015")
 
 selectInput (
-  "Year1",
+  "Year12",
   label = h3("Select Year 1"),
   choices = years,
   selected = "2018"
 )
 
 selectInput (
-  "Year2",
+  "Year22",
   label = h3("Select Year 2"),
   choices = years,
   selected = "2017"
@@ -153,11 +153,11 @@ Row
 ```{r, echo = F}
 renderPlotly ({
   
-  yr1 = as.character(input$Year1)
+  yr1 = as.character(input$Year12)
   
   ecig_data %>%
     filter(!age %in% c(9, 10)) %>%
-    filter(year == input$Year1) %>% 
+    filter(year == input$Year12) %>% 
     filter(is.na(age) == FALSE, 
            is.na(try_ecigs) == FALSE,
            is.na(cig_days) == FALSE) %>%
@@ -194,11 +194,11 @@ renderPlotly ({
 ```{r, echo = F}
 renderPlotly ({
   
-  yr2 = as.character(input$Year2)
+  yr2 = as.character(input$Year22)
   
   ecig_data %>%
     filter(!age %in% c(9, 10)) %>%
-    filter(year == input$Year2) %>% 
+    filter(year == input$Year22) %>% 
     filter(is.na(age) == FALSE, 
            is.na(try_ecigs) == FALSE,
            is.na(cig_days) == FALSE) %>%
@@ -239,17 +239,17 @@ Inputs {.sidebar}
 -----------------------------------------------------------------------
 
 ```{r, echo = F, message = F}
-years = c("2018", "2017", "2016",  "2015")
+years = c("2018", "2017", "2016",  "2015", "2014", "2013", "2012", "2011")
 
 selectInput (
-  "Year1",
+  "Year13",
   label = h3("Select Year 1"),
   choices = years,
   selected = "2018"
 )
 
 selectInput (
-  "Year2",
+  "Year23",
   label = h3("Select Year 2"),
   choices = years,
   selected = "2017"
@@ -274,23 +274,23 @@ temp = ecig_data %>%
     group_by(age, year) %>%
     mutate(indc = ifelse(try_ecigs == "yes", 1, 0)) %>%
     summarise(y = weighted.mean(indc, as.numeric(weight))) %>%
-    filter(year %in% c(input$Year1, input$Year2)) %>%
-    mutate(year = ifelse(year == input$Year1, "year1", "year2")) %>%
+    filter(year %in% c(input$Year13, input$Year23)) %>%
+    mutate(year = ifelse(year == input$Year13, "year1", "year2")) %>%
     pivot_wider(id_cols = age, names_from = year, values_from = y) %>%
   plot_ly(x = ~age, 
         y = ~year1,
         type = "bar",
-        name = input$Year1) %>%
+        name = input$Year13) %>%
   add_trace(x = ~age,
             y = ~year2,
             type = "bar",
             width = 0.3,
-            name = input$Year2) %>%
+            name = input$Year23) %>%
   layout(barmode = "overlay",
          title = "Proportion of Kids who Have Tried Electronic Cigarettes",
          xaxis = list(title = "Age"),
          yaxis = list(title = "Proportion Tried E-cigarettes")
-  )
+  ) 
 
 })
 
