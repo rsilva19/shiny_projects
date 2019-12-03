@@ -1,0 +1,10 @@
+name: shiny_legislation
+title:
+username:
+account: rsilva19-shiny
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1552261
+bundleId: 2634284
+url: https://rsilva19-shiny.shinyapps.io/shiny_legislation/
+when: 1575337164.09246
