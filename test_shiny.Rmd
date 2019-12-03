@@ -1,0 +1,115 @@
+---
+title: "test_shiny"
+author: "Charlotte Fowler"
+date: "12/3/2019"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(tidyverse)
+library(plotly)
+library(viridis)
+library(rsconnect)
+ecig_data = read.csv("./data/ecig_data.csv")
+
+```
+
+Quit Cigarettes
+===================================== 
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r, echo = F, message = F}
+years = c("2018", "2017", "2016",  "2015")
+
+selectInput (
+  "Year11",
+  label = h3("Select Year 1"),
+  choices = years,
+  selected = "2018"
+)
+```
+  
+Select a year to compare the distribution of e-cigarette use across intention to quit smoking and year.
+
+It is interesting to see that across the years among smokers, the intent to quit smoking does not appear to affect e-cigarette use. This offers a counterargument for the use of e-cigarettes to quit smoking, as e-cig users are not more motivated to quit than non users. 
+
+
+Row
+-------------------------------------
+
+
+
+
+
+
+
+
+
+```{r echo = F}
+
+renderPlotly ({
+  
+  yr1 = as.character(input$Year11)
+  
+  
+ecig_data %>%
+  filter(!age %in% c(9, 10)) %>%
+  filter(!is.na(ecigs_past_month)) %>%
+  filter(quit_cig %in% c("next 30 days", "next 6 months", "no", "over 1 year", "within 1 year")) %>% 
+   mutate(
+    quit_cig = recode(quit_cig,
+                      "next 30 days" = "trying to quit cigarettes",
+                      "next 6 months" = "trying to quit cigarettes",
+                      "within 1 year" = "trying to quit cigarettes",
+                      "over 1 year" = "not trying to quit cigarettes", 
+                      "no" = "not trying to quit cigarettes"),
+    harm_ecigs = recode(harm_ecigs,
+                        "equally addictive" = "equally", 
+                        "less addictive" = "less", 
+                        "more addictive" = "more"), 
+    ecigs_past_month = recode(ecigs_past_month,
+                              "0" = "0 days",
+                              "1-2" = "1-9 days",
+                              "3-5" = "1-9 days",
+                              "6-9" = "1-9 days",
+                              "20-29" = "20-30 days",
+                              "30" = "30 days"
+                               
+    ),
+    ecigs_past_month = factor(ecigs_past_month,
+                              levels = c("0 days", "1-9 days", "10-19 days", "20-30 days")
+                              )
+    ) %>% 
+  filter(year == input$Year11) %>%
+  group_by(quit_cig, ecigs_past_month) %>% 
+  summarise(n= n()) %>% 
+  mutate(prop = n/sum(n)) %>% 
+  plot_ly(
+    x = ~quit_cig, 
+    y = ~prop,  
+    color = ~ecigs_past_month,
+    type = "bar", 
+    mode = "markers",
+    colors = "Set3"
+    
+  )  %>%
+    layout(
+      title = str_c("E-cigarette use across smokers in", yr1),
+      xaxis = list(title = ""),
+      yaxis = list(title = "Proportion of E-cig Use",
+                   range = c(0, 0.7))
+    )
+
+})
+
+```
+
