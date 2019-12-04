@@ -180,7 +180,7 @@ ecig_data %>%
     
   )  %>%
     layout(
-      title = str_c("E-cigarette use across smokers in", yr1),
+      title = str_c("Distribution of E-cigarette Use By Intention to Quit Cigarettes in ", yr1),
       xaxis = list(title = ""),
       yaxis = list(title = "Proportion of E-cig Use",
                    range = c(0, 0.7))
