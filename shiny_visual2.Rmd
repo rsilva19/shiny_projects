@@ -1,0 +1,267 @@
+---
+title: "Visualizations"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+---
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(tidyverse)
+library(plotly)
+library(viridis)
+library(rsconnect)
+ecig_data = read.csv("./data/ecig_data.csv")
+
+```
+
+Smoking Status
+===================================== 
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r, echo = F, message = F}
+years = c("2018", "2017", "2016",  "2015")
+
+selectInput (
+  "Year12",
+  label = h3("Select Year 1"),
+  choices = years,
+  selected = "2018"
+)
+
+selectInput (
+  "Year22",
+  label = h3("Select Year 2"),
+  choices = years,
+  selected = "2017"
+)
+```
+Are cigarette smokers more likely to use electronic cigarettes?
+
+Select two years to compare the proportion of e-cigarette use across year, age, and smoking status.
+  
+While smokers appear more likely to use e-cigarettes than non-smokers, it is interesting that this trend does not appear to change across time. 
+
+*Note*: Error will occur if the same year is selected. 
+
+Row
+-------------------------------------
+
+```{r, echo = F}
+renderPlotly ({
+  
+  yr1 = as.character(input$Year12)
+  yr2 = as.character(input$Year22)
+  
+  ecig_plot = 
+    ecig_data %>%
+    filter(!age %in% c(9, 10), 
+           year %in% c(input$Year12,input$Year22),  
+           is.na(age) == FALSE, 
+           is.na(try_ecigs) == FALSE,
+           is.na(cig_days) == FALSE) %>%
+    mutate(current_cig = as.numeric(cig_days != "0")) %>% 
+    mutate(current_cig = ifelse(current_cig == 0, "NS","S")) %>%
+    group_by(year, age, current_cig) %>%
+    mutate(indc = ifelse(try_ecigs == "yes", 1, 0)) %>%
+    summarise(y = weighted.mean(indc, as.numeric(weight)))  %>% 
+    mutate(year_status = str_c(year, current_cig)) %>% 
+    pivot_wider(id_cols = age, 
+                names_from = year_status,
+                values_from = y) %>% 
+    ungroup() 
+  
+    colnames(ecig_plot) =  c("age", "year1_NS", "year1_S", "year2_NS","year2_S")
+    
+    ecig_plot %>%
+    plot_ly(x = ~age, y = ~year1_S, name = str_c("Smokers in ",yr1),
+            type = "scatter", mode = "lines", alpha = 0.6, line = list(color = 'rgb(205, 12, 24)', width = 4)) %>%
+      add_trace(y = ~year2_S, name = str_c("Smokers in ",yr2),
+                line = list(color = 'rgb(205, 12, 24)', width = 4, dash = 'dash')) %>% 
+      add_trace(y = ~year1_NS, name = str_c("Non-smokers in ",yr1),
+              mode = "lines", line = list(color = 'rgb(22, 96, 167)', width = 4)) %>% 
+      add_trace(y = ~year2_NS, name = str_c("Non-smokers in ",yr2),
+                line = list(color = 'rgb(22, 96, 167)', width = 4, dash = 'dash'))%>%
+    layout(
+      title = "Proportion of E-cigarette Use By Age Based on Smoking Status",
+      xaxis = list(
+        title = "Age",
+        domain = c(9:19)
+      ),
+      yaxis= list(
+        title = "Proportion of Ecig Use",
+        range = c(0, 1)
+      )
+    )
+    
+})
+```
+
+
+Intention to Quit Cigarettes
+===================================== 
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r, echo = F, message = F}
+years = c("2018", "2017", "2016",  "2015")
+
+selectInput (
+  "Year11",
+  label = h3("Select a Year"),
+  choices = years,
+  selected = "2018"
+)
+```
+  
+Select a year to compare the distribution of e-cigarette use across intention to quit smoking and year.
+
+It is interesting to see that across the years among smokers, the intent to quit smoking does not appear to affect e-cigarette use. This offers a counterargument for the use of e-cigarettes to quit smoking, as e-cig users are not more motivated to quit than non users. 
+
+
+Row
+-------------------------------------
+
+
+```{r echo = F}
+
+renderPlotly ({
+  
+  yr1 = as.character(input$Year11)
+  
+  
+ecig_data %>%
+  filter(!age %in% c(9, 10)) %>%
+  filter(!is.na(ecigs_past_month)) %>%
+  filter(quit_cig %in% c("next 30 days", "next 6 months", "no", "over 1 year", "within 1 year")) %>% 
+   mutate(
+    quit_cig = recode(quit_cig,
+                      "next 30 days" = "trying to quit cigarettes",
+                      "next 6 months" = "trying to quit cigarettes",
+                      "within 1 year" = "trying to quit cigarettes",
+                      "over 1 year" = "not trying to quit cigarettes", 
+                      "no" = "not trying to quit cigarettes"),
+    harm_ecigs = recode(harm_ecigs,
+                        "equally addictive" = "equally", 
+                        "less addictive" = "less", 
+                        "more addictive" = "more"), 
+    ecigs_past_month = recode(ecigs_past_month,
+                              "0" = "0 days",
+                              "1-2" = "1-9 days",
+                              "3-5" = "1-9 days",
+                              "6-9" = "1-9 days",
+                              "20-29" = "20-30 days",
+                              "30" = "30 days"
+                               
+    ),
+    ecigs_past_month = factor(ecigs_past_month,
+                              levels = c("0 days", "1-9 days", "10-19 days", "20-30 days")
+                              )
+    ) %>% 
+  filter(year == input$Year11) %>%
+  group_by(quit_cig, ecigs_past_month) %>% 
+  summarise(n= n()) %>% 
+  mutate(prop = n/sum(n)) %>% 
+  plot_ly(
+    x = ~quit_cig, 
+    y = ~prop,  
+    color = ~ecigs_past_month,
+    type = "bar", 
+    mode = "markers",
+    colors = "Set3"
+    
+  )  %>%
+    layout(
+      title = str_c("E-cigarette use across smokers in", yr1),
+      xaxis = list(title = ""),
+      yaxis = list(title = "Proportion of E-cig Use",
+                   range = c(0, 0.7))
+    )
+
+})
+
+```
+
+
+
+
+Trying E-Cirgarettes
+===================================== 
+
+Inputs {.sidebar}
+-----------------------------------------------------------------------
+
+```{r, echo = F, message = F}
+years = c("2018", "2017", "2016",  "2015", "2014", "2013", "2012", "2011")
+
+selectInput (
+  "Year13",
+  label = h3("Select Year 1"),
+  choices = years,
+  selected = "2017"
+)
+
+selectInput (
+  "Year23",
+  label = h3("Select Year 2"),
+  choices = years,
+  selected = "2018"
+)
+```
+Has the number of kids who have tried electronic cigarettes risen over time?
+  
+  
+Select two years to compare the proportion of kids who have tried e-cigarettes across year and age.
+
+
+Row
+-------------------------------------
+
+```{r, echo = F}
+renderPlotly ({
+  
+temp = ecig_data %>%
+    filter(!age %in% c(9, 10)) %>%
+    filter(is.na(age) == FALSE, is.na(sex) == FALSE, is.na(try_ecigs) == FALSE) %>%
+    filter(!age %in% c(9,10)) %>%
+    group_by(age, year) %>%
+    mutate(indc = ifelse(try_ecigs == "yes", 1, 0)) %>%
+    summarise(y = weighted.mean(indc, as.numeric(weight))) %>%
+    filter(year %in% c(input$Year13, input$Year23)) %>%
+    mutate(year = ifelse(year == input$Year13, "year1", "year2")) %>%
+    pivot_wider(id_cols = age, names_from = year, values_from = y) %>%
+  plot_ly(x = ~age, 
+        y = ~year1,
+        type = "bar",
+        name = input$Year13) %>%
+  add_trace(x = ~age,
+            y = ~year2,
+            type = "bar",
+            width = 0.3,
+            name = input$Year23) %>%
+  layout(barmode = "group",
+         title = "Proportion of Kids who Have Tried Electronic Cigarettes",
+         xaxis = list(title = "Age"),
+         yaxis = list(title = "Proportion Tried E-cigarettes")
+  ) 
+
+})
+
+```
+
+
+
+
+
+
+
+
+
